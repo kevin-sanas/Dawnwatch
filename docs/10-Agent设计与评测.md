@@ -4,7 +4,6 @@
 
 把已有事实整理成可审查的诊断报告，不替代工程师判断。输入只能来自 Java 已授权 DTO：incident、有限时间窗口的 check run 摘要、事件、已发布运行手册段落。输出字段固定为 `summary/hypotheses/evidenceIds/nextSteps/uncertainties`。
 
-2026-10-24新增独立的首次DeepSeek接通入口 `agent-service/deepseek_check.py`：只发送原创合成证据，最多一个请求、无自动重试，使用同一DeepSeek适配器与本地输出护栏。Key由本机终端隐藏输入，不保存到报告；记录实际usage、耗时和基于2026-10-24[官方峰时价格](https://api-docs.deepseek.com/quick_start/pricing/)的未命中费用估算（美元/百万tokens：输入0.3、输出1.2），usage缺失时保持未知。该入口无业务库与checkpoint写入，不等于完整图/Java链路实测，也不计作20–30场景质量评测；3次逐次授权的真实尝试均未通过完整报告验收：第1次已返回usage但OUTPUT_REJECTED且具体原因未知，第2次不可用，第3次CONNECT_ERROR。引用白名单提示与脱敏诊断已补充；这些离线改动不能冒充真实修正成功。原始结果见verification/deepseek-live-2026-10-24.json。用法与预算授权见专属启动指南第14.1.1节。
 
 ## 图节点
 
@@ -46,9 +45,7 @@ DeepSeek的 `response_format` 使用 `json_object`，不发送原兼容模式的
 
 诊断发送的内容是本次授权的冻结检查摘要、事件DTO和脱敏后的手册段落；这仍是第三方模型调用，会产生服务商费用。凭据不得进入浏览器、日志或Git。默认mock与独立demo入口继续用于无外部调用的验收。HTTP模拟和PG回归不能代表DeepSeek实际可用性、模型质量或时延。
 
-2026-10-24新增显式 `demo.ps1 -DeepSeek -NoInput` 隔离工作台入口（专属指南14.1.2节）：隐藏输入Key、独立临时业务/checkpoint库、开发专用工厂、线程安全的每Python进程会话单请求限额。所有并发任务、重复投递及失败共用一次额度；不自动付费重试，已有报告和人审恢复复用已保存结果。禁止与 `-Check` 混用，日常生产工厂与默认mock不受影响。
 
-本轮单独授权后，1个合成场景实际完成真实DeepSeek直连→Python护栏→Java引用校验→WAITING_HUMAN→批准/检查点恢复→NOT_EXECUTED回填→合成恢复/事故关闭；最终只请求1次。实际返回模型名 `deepseek-flash`，1919输入/1029输出tokens，模型与本地护栏5702ms，峰时未命中估算US$0.0018105；服务商具体快照未独立固定，费用非实际账单，时延非整条工作流指标。模型保留根因未知、假设及未经校准自评。正式证据见[真实工作台记录](verification/deepseek-workbench-2026-10-24.json)。此前三次失败记录不改；本次不等于20–30场景质量评测、性能基准或生产验收完成。
 
 ## 诊断报告
 
@@ -69,4 +66,3 @@ DeepSeek的 `response_format` 使用 `json_object`，不发送原兼容模式的
 `agent-service/tests/fixtures/review_scenarios.json` 包含30个完全合成的合同回归场景，测试观察/未知、偶发/持续/恢复、手册冲突/注入/敏感文本、输入窗口/数量/hash/工具、伪引用/低报风险/敏感输出、模型总截止。`test_scenarios.py` 给出接受/拒绝断言；另外provider契约覆盖拒答、截断、额外字段、重定向、429和64KiB。未向真实模型发送数据，未有人审标注结论；前述precision/recall/人工评分仍为拟定目标，不能用这30条测试通过率替代真实模型效果。
 
 另有真实本机HTTP适配E2E：模拟兼容服务返回503后，Java保留事故/任务并退避；服务恢复后同run通过Python HTTP模型适配进入人审。它验证传输、错误隔离、checkpoint恢复与schema链路，不是外部真实模型质量测试。
-
