@@ -36,7 +36,7 @@ npm --prefix frontend ci --ignore-scripts --no-fund --no-audit
 2. 确认事故、开始排查并发起 AI 诊断，核对证据并处理人工审阅。
 3. 在终端输入 `up`，核对恢复过程并关闭事故。验收结束后输入 `quit`。
 
-日常 IDEA 启动、数据库配置、DeepSeek 页面配置和故障排查见 [IDEA 启动与验收指南](IDEA启动与验收指南.md)。此版本的 Compose 入口有已知的内部 Agent 地址校验问题，体验时请使用上述本机入口。
+日常 IDEA 启动、数据库配置、DeepSeek 页面配置和故障排查见 [IDEA 启动与验收指南](IDEA启动与验收指南.md)。也可以使用 Docker Compose，容器间的 Agent HTTPS 证书由部署自动生成。[Compose 部署说明](docs/12-本地部署运维与CI-CD.md)
 
 ## 架构与目录
 

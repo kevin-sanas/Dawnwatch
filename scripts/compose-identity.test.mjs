@@ -29,3 +29,14 @@ test('compose never passes model credentials through process environment', () =>
   const environment = render().services['agent-service'].environment
   for (const name of ['AGENT_LLM_API_KEY','AGENT_LLM_PROVIDER','AGENT_MODEL_NAME','AGENT_LLM_BASE_URL']) assert.equal(environment[name], undefined)
 })
+
+test('backend uses HTTPS and only receives the Agent public trust material', () => {
+  const { services } = render()
+  const backend = services.backend
+  const agent = services['agent-service']
+  assert.equal(backend.environment.AGENT_SERVICE_ORIGIN, 'https://agent-service:8090')
+  assert.equal(agent.depends_on['agent-tls'].condition, 'service_completed_successfully')
+  assert.equal(services['agent-tls'].network_mode, 'none')
+  assert.deepEqual(backend.volumes.map(({ source, read_only }) => [source, read_only]), [['agent-trust', true]])
+  assert.deepEqual(agent.volumes.map(({ source, read_only }) => [source, read_only]), [['agent-tls', true]])
+})

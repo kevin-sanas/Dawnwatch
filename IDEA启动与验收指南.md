@@ -135,4 +135,6 @@ npm --prefix frontend run dev
 
 Kuma 可选，用于向事先配置的 Push Monitor 转发健康状态。配置和监视器映射见 [Uptime Kuma 集成](docs/11-Uptime-Kuma集成边界.md)。
 
-容器拓扑、数据卷和备份见[部署文档](docs/12-本地部署运维与CI-CD.md)。当前 Compose 的内部 Agent HTTP 地址与地址校验存在冲突，完整容器链路待验证。优先选择本机启动或隔离演示。
+Compose 首次启动前，从 `.env.example` 创建本地 `.env`，填写其中的数据库密码、初始管理员密码、会话 pepper 和内部服务令牌。启用 AI 诊断时设置 `AGENT_ENABLED=true`。已有环境继续沿用原值与数据卷前缀。
+
+在项目根目录执行 `docker compose up --build -d --wait`。检查 [后端健康状态](http://127.0.0.1:18080/actuator/health) 后，打开 [工作台](http://127.0.0.1:5174)。Compose 自动准备 Agent HTTPS 证书。日常停止使用 `docker compose down`。升级和证书更新见[部署文档](docs/12-本地部署运维与CI-CD.md)。

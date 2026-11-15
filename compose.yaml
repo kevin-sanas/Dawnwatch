@@ -9,7 +9,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d agentops"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d agentops"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -28,7 +28,8 @@ services:
       MONITORING_ENABLED: ${MONITORING_ENABLED:-true}
       MONITOR_ALLOWED_PRIVATE_CIDRS: ${MONITOR_ALLOWED_PRIVATE_CIDRS:-}
       AGENT_ENABLED: ${AGENT_ENABLED:-true}
-      AGENT_SERVICE_ORIGIN: http://agent-service:8090
+      AGENT_SERVICE_ORIGIN: https://agent-service:8090
+      JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/run/agent-trust/cacerts
       KUMA_ENABLED: ${KUMA_ENABLED:-false}
       KUMA_BASE_URL: ${KUMA_BASE_URL:-}
       KUMA_ALLOW_HTTP: ${KUMA_ALLOW_HTTP:-false}
@@ -38,6 +39,8 @@ services:
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?Set BOOTSTRAP_ADMIN_PASSWORD in .env}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-18080}:8080"
+    volumes:
+      - agent-trust:/run/agent-trust:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,11 +57,19 @@ services:
       - checkpoint-data:/var/lib/postgresql/data
       - ./deploy/checkpoint-init.sh:/docker-entrypoint-initdb.d/10-checkpoint.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U checkpoint_owner -d agentops_checkpoint"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U checkpoint_owner -d agentops_checkpoint"]
       interval: 5s
       timeout: 3s
       retries: 20
     networks: [checkpoint]
+  agent-tls:
+    image: eclipse-temurin:21.0.12.1_1-jre-jammy@sha256:affcab5356e1270ac35d2361ee83135af2f03e8d580eca78a6d5d6fdbf048db0
+    entrypoint: ["/bin/sh", "/app/agent-tls-init.sh"]
+    network_mode: none
+    volumes:
+      - ./deploy/agent-tls-init.sh:/app/agent-tls-init.sh:ro
+      - agent-tls:/run/agent-tls
+      - agent-trust:/run/agent-trust
   agent-service:
     build:
       context: .
@@ -67,7 +78,11 @@ services:
     environment:
       CHECKPOINT_PASSWORD: ${CHECKPOINT_PASSWORD:?Set CHECKPOINT_PASSWORD}
       AGENT_INTERNAL_TOKEN: ${AGENT_INTERNAL_TOKEN:?Set AGENT_INTERNAL_TOKEN}
+    volumes:
+      - agent-tls:/run/agent-tls:ro
     depends_on:
+      agent-tls:
+        condition: service_completed_successfully
       checkpoint-db:
         condition: service_healthy
     networks: [checkpoint, app, egress]
@@ -103,6 +118,8 @@ networks:
   egress: {}
   edge: {}
 volumes:
+  agent-tls:
+  agent-trust:
   # Preserve the original physical volumes when only the product/project name changes.
   # Existing custom deployments can set DAWNWATCH_DATA_PREFIX to their old project name.
   postgres-data:

@@ -29,9 +29,11 @@ Dawnwatch 继续沿用部分 AgentOps 技术标识，以兼容已有配置与数
 
 ## 本地运行
 
-Compose 拓扑包含 `postgres`、`checkpoint-db`、`backend`、`agent-service` 和 `frontend`。Uptime Kuma 通过 `kuma` profile 按需启用。Java 与前端的宿主机端口默认只绑定回环地址，Python 和数据库留在容器网络。
+Compose 拓扑包含 `postgres`、`checkpoint-db`、`backend`、`agent-service` 和 `frontend`。初始化服务 `agent-tls` 在无网络的容器内准备证书，并在 Agent 启动前退出。Java 通过 `https://agent-service:8090` 连接，校验主机名及证书。Agent 只读挂载证书和私钥，Java 只读挂载含公开证书的信任库。
 
-原生运行与隔离演示见 [IDEA 启动与验收指南](../IDEA启动与验收指南.md)。当前 Compose 的内部 Agent HTTP 地址与地址校验存在冲突，容器链路待验证。
+Uptime Kuma 通过 `kuma` profile 按需启用。Java 与前端的宿主机端口默认只绑定回环地址，Python 和数据库留在容器网络。原生运行、容器启动与隔离演示见 [IDEA 启动与验收指南](../IDEA启动与验收指南.md)。
+
+证书有效期为一年。换证时先对当前项目执行 `docker compose down`，仅移除该项目的 `agent-tls` 与 `agent-trust` 两个证书卷，再重启。通过 `docker volume ls` 确认两卷的完整名称，避免删除数据库和 Kuma 数据卷。
 
 ## 配置
 

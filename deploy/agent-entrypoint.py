@@ -8,4 +8,5 @@ os.environ["AGENT_CHECKPOINT_DSN"] = (
     + "@checkpoint-db:5432/agentops_checkpoint"
 )
 os.execvp("python", ["python", "-m", "uvicorn", "agentops_agent.app:from_environment",
-                     "--factory", "--host", "0.0.0.0", "--port", "8090", "--no-access-log"])
+                     "--factory", "--host", "0.0.0.0", "--port", "8090", "--no-access-log",
+                     "--ssl-keyfile", "/run/agent-tls/agent.key", "--ssl-certfile", "/run/agent-tls/agent.crt"])
