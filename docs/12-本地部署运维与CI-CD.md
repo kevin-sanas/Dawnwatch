@@ -6,7 +6,6 @@
 
 当前 G5 启动路径：复制 `.env.example`，设置业务库密码、checkpoint owner/application 两个密码、会话 pepper/内部密钥及 bootstrap 凭据；设置 `AGENT_ENABLED=true`，默认 mock、Kuma 关闭，执行 `docker compose up --build -d --wait`。详细中文 IDEA/Compose 步骤见根目录 `IDEA启动与验收指南.md`。业务和 checkpoint PostgreSQL 各自独立数据卷与网络；Python/数据库不映射宿主机端口，后端18080、前端5174仅绑定loopback。不要与同端口 IDEA 进程同时启动。
 
-2026-10-21 已在独立 `agentops-g5-verify` 项目实际构建三种应用镜像，启动两种 PostgreSQL、Java、Python、前端与 Kuma，验证前端同源登录、诊断/重启/人审、真实 Push 和故障恢复；测试端口18184/5184/3301，未操作用户服务。证据见 `verification/g5-validation-2026-10-21.json`。bootstrap 仍仅针对空用户表，不重置已有账号。
 
 ## 配置
 
