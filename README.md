@@ -11,27 +11,36 @@ Dawnwatch 是一个面向值班团队的运维协作平台。从服务健康检�
 | AI 故障诊断 | 从冻结的检查和已发布的运行手册生成诊断报告，区分观测、推断和未知，并附上可核对的引用。 |
 | 人工审阅 | 由授权值班人员批准或拒绝建议，线下处理后回填结果。平台中的诊断工具只有读取权限。 |
 | 运维知识库 | 编辑和发布版本化运行手册，旧诊断继续引用当时的版本。 |
+| 模型配置与用量 | 管理员可加密保存 DeepSeek Key、测试连接、查看余额和 Token 趋势，并追踪请求来自哪个业务环节。 |
+| 诊断质量中心 | 离线查看合成评测场景及报告，核对证据并通过 JSON 导入、导出人工评分。 |
 
 Uptime Kuma 是可选集成。Dawnwatch 通过 Push 将健康状态发送到已配置的 Kuma Monitor。
 
-## 本地启动
+## 快速体验
 
-需要 Git、Java 21、Maven 3.9、Python 3.13、Node.js 22.12 或更高版本，以及 PostgreSQL 17。将 JAVA_HOME 指向 Java 21。首次安装需要访问依赖仓库。
+Windows 本机演示需要 Git、Java 21、Maven 3.9、Python 3.13 和 Node.js 22.12 或更高版本。将 `JAVA_HOME` 指向 Java 21，并确保 Maven、Python 和 Node.js 在 `PATH` 中。首次安装需要访问依赖仓库。
 
-在 Windows PowerShell 中克隆仓库并安装锁定依赖。
+在 PowerShell 中执行以下命令。如果从其他分支阅读本页，请在安装前切换到对应分支。
 
 ```powershell
 git clone https://github.com/kevin-sanas/Dawnwatch.git
 Set-Location Dawnwatch
 .\scripts\agent.ps1 Install -Dev
 npm --prefix frontend ci --ignore-scripts --no-fund --no-audit
+.\scripts\demo.ps1
 ```
 
-按照指南依次启动 PostgreSQL、Python Agent、IDEA 后端和前端。工作台默认位于 [127.0.0.1:5174](http://127.0.0.1:5174)，首次登录使用启动时设置的管理员账户。监控与诊断可以用合成故障和 mock provider 体验。这个分支的界面可能显示早期名称 AgentOps AI。
+打开终端打印的网址，使用同一终端显示的临时账号和密码登录。演示自带服务、检查和运行手册，使用独立的临时 PostgreSQL 和 mock 诊断，无需填写 DeepSeek Key。
 
-[IDEA 启动与验收指南](IDEA启动与验收指南.md)
+1. 在演示终端输入 `down`，然后在「告警与事件」中打开新事故。
+2. 确认事故、开始排查并发起 AI 诊断，核对证据并处理人工审阅。
+3. 在终端输入 `up`，核对恢复过程并关闭事故。验收结束后输入 `quit`。
+
+日常 IDEA 启动、数据库配置、DeepSeek 页面配置和故障排查见 [IDEA 启动与验收指南](IDEA启动与验收指南.md)。也可以使用 Docker Compose，容器间的 Agent HTTPS 证书由部署自动生成。[Compose 部署说明](docs/12-本地部署运维与CI-CD.md)
 
 ## 架构与目录
+
+![Dawnwatch 技术架构图](docs/project-overview/architecture.svg)
 
 Vue 工作台通过同源 API 访问 Spring Boot 后端。Java 管理用户权限、监控、事故和审计，通过 Outbox 将诊断任务交给 Python Agent。Agent 使用 FastAPI 和 LangGraph，由独立 PostgreSQL 保存诊断检查点。Flyway 管理业务库迁移。
 
@@ -44,11 +53,11 @@ Vue 工作台通过同源 API 访问 Spring Boot 后端。Java 管理用户权�
 | [`scripts/`](scripts/) | 本机启动、开发验证、演示和隔离恢复工具 |
 | [`docs/`](docs/) | 设计说明、架构、数据模型与接口契约 |
 
-查看[架构与技术选型](docs/05-架构与技术选型.md)、[数据库设计](docs/06-数据模型ERD与SQL.md)和[公共 API 契约](docs/07-API契约.md)。
+功能结构、技术架构、数据库设计和系统流程图见[项目详细说明](项目详细说明.md)，四张图也可以在[离线图文版](docs/project-overview/项目详细说明.html)中查看。公共接口见 [API 契约](docs/07-API契约.md)。
 
 ## 开发与测试
 
-先按本地启动一节安装依赖，再在项目根目录运行以下检查。
+先按快速体验一节安装依赖，再在项目根目录运行以下检查。
 
 ```powershell
 .\scripts\agent.ps1 Test

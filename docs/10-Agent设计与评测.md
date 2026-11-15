@@ -13,9 +13,10 @@ flowchart LR
   C --> R[retrieve runbook sections]
   R --> A[analyze evidence]
   A --> G[guardrail and citation check]
-  G -->|无高风险建议| F[final structured result]
-  G -->|需人工审阅| H[interrupt / WAITING_HUMAN]
-  H -->|approved/rejected| F
+  G -->|无待审建议| F[final structured result]
+  G -->|有待审建议| H[interrupt / WAITING_HUMAN]
+  H -->|approved| F
+  H -->|rejected| E2[结束]
   A -->|provider/schema failure| E[bounded retry / safe failure]
 ```
 
@@ -34,7 +35,13 @@ flowchart LR
 
 ## 工具策略与模型
 
-LangGraph 仅提供明确的内部只读工具，不允许模型组装 URL/SQL/命令。Java 通过内部 service API 检查数据范围。优先 `mock` provider 可重复演示；真实 LLM 仅通过后端配置启用，使用温度低、输出 schema 约束。模型选择/版本作为 `graphVersion` 与 `modelName` 落库，不能把具体厂商写死在业务 schema。
+LangGraph 仅提供明确的内部只读工具，不允许模型组装 URL/SQL/命令。Java 通过内部 service API 检查数据范围。优先 `mock` provider 可重复演示；真实模型由管理员在工作台配置，使用温度低、输出 schema 约束。模型选择/版本作为 `graphVersion` 与 `modelName` 落库，不能把具体厂商写死在业务 schema。
+
+## DeepSeek 模式
+
+管理员在模型配置页测试和保存 Key。Java 保存加密凭据，将其提供给 Python 的受控内部调用；Python 向官方 HTTPS 接口发起请求。DeepSeek 使用 JSON Output，返回后仍须通过本地结构、证据引用、敏感内容与风险校验。Java 后端再次核对证据来源。配置步骤见 [IDEA 启动与验收指南](../IDEA启动与验收指南.md)。
+
+诊断输入来自获授权的冻结检查摘要、事件与手册段落。请在启用外部模型前核对数据出站范围与服务商费用。结果不确定的调用会停止自动重发。隔离演示默认使用 mock。
 
 ## 诊断报告
 
@@ -48,10 +55,9 @@ LangGraph 仅提供明确的内部只读工具，不允许模型组装 URL/SQL/�
 - 用同一固定评测集比较 prompt/图/model 版本；报告场景数、模型、参数、通过率、失败例。全部是待测目标，不是已有成绩。
 - 运行人审审批流程测试：拒绝后不继续图执行；批准后仅记录 `APPROVED_FOR_MANUAL`，不能执行命令。
 
-## G4 实现与评测边界（2026-10-21）
+### 离线评测与人工复核
 
-`readonly-review-v2` 在guard后通过LangGraph interrupt进入review，批准Command(resume)后只执行finalize，拒绝直接END；PG checkpoint和独立决策元数据支持重启/重复请求。真实provider为服务端配置的兼容Chat Completions HTTP，严格JSON Schema，不提供工具。官方契约已核对：[LangGraph interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)、[Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=chat)。
+使用 `agent-service/evaluate.py prepare` 导出合成场景、输入哈希和待审清单。`review` 和 `import-reviews` 用于人评文件往返，`score` 核对评分覆盖与证据指标，`workbench` 打包前端质量中心所需的数据。导入报告会校验输入与报告绑定；人工评分结果应由实际复核人录入。
 
-`agent-service/tests/fixtures/review_scenarios.json` 包含30个完全合成的合同回归场景，测试观察/未知、偶发/持续/恢复、手册冲突/注入/敏感文本、输入窗口/数量/hash/工具、伪引用/低报风险/敏感输出、模型总截止。`test_scenarios.py` 给出接受/拒绝断言；另外provider契约覆盖拒答、截断、额外字段、重定向、429和64KiB。未向真实模型发送数据，未有人审标注结论；前述precision/recall/人工评分仍为拟定目标，不能用这30条测试通过率替代真实模型效果。
+这些工具可以离线运行。覆盖不足时评分为 `INCOMPLETE`。合成回归衡量可重现的输出结构和规则，完整质量评测还需要核对真实调用回执及人工证据判断。
 
-另有真实本机HTTP适配E2E：模拟兼容服务返回503后，Java保留事故/任务并退避；服务恢复后同run通过Python HTTP模型适配进入人审。它验证传输、错误隔离、checkpoint恢复与schema链路，不是外部真实模型质量测试。

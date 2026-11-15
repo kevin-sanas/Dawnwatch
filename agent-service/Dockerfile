@@ -3,7 +3,7 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 COPY agent-service/requirements.lock /app/requirements.lock
 RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r requirements.lock \
-    && groupadd --system agentops && useradd --system --gid agentops agentops
+    && groupadd --gid 10001 agentops && useradd --uid 10001 --gid agentops agentops
 COPY --chown=agentops:agentops agent-service/agentops_agent /app/agentops_agent
 COPY --chown=agentops:agentops deploy/agent-entrypoint.py /app/compose-entrypoint.py
 USER agentops

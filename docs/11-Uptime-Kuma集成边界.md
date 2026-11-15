@@ -2,9 +2,9 @@
 
 ## 目的和方向
 
-Uptime Kuma 可为现有使用者显示 AgentOps 定期检查到的服务状态，并继续使用 Kuma 自己配置的通知。数据方向只有 **AgentOps → Kuma Push Monitor**。管理员在 Kuma UI 中预先创建 Push monitor，再将其 Push URL/token 以 secret reference 配置到对应 AgentOps `ServiceTarget`。
+Uptime Kuma 可为现有使用者显示 Dawnwatch 定期检查到的服务状态，并继续使用 Kuma 自己配置的通知。数据方向只有 **Dawnwatch → Kuma Push Monitor**。管理员在 Kuma UI 中预先创建 Push monitor，再将其 Push URL/token 以 secret reference 配置到对应 Dawnwatch `ServiceTarget`。
 
-AgentOps 不从 Kuma 导入 monitor、不通过 Socket.IO 登录、不修改 Kuma 通知规则、不把 Kuma heartbeat/incident 当作自己的事实记录。AgentOps 自己的 `CheckRun`/`Incident` 才是本系统数据源。
+Dawnwatch 不从 Kuma 导入 monitor、不通过 Socket.IO 登录、不修改 Kuma 通知规则、不把 Kuma heartbeat/incident 当作自己的事实记录。Dawnwatch 自己的 `CheckRun`/`Incident` 才是本系统数据源。
 
 ## 上游接口核验
 
@@ -27,7 +27,7 @@ AgentOps 不从 Kuma 导入 monitor、不通过 Socket.IO 登录、不修改 Kum
 | 从 Kuma 读取 heartbeat/事件或 monitor 列表 | 不支持 |
 | 自动创建 monitor/改通知策略 | 不支持 |
 | 通过 Socket.IO 内部协议调用 | 禁止 |
-| Kuma 不在线时保留 AgentOps 结果并重试 push | 支持 |
+| Kuma 不在线时保留 Dawnwatch 结果并重试 push | 支持 |
 
 如果未来要做双向数据同步，需要新增版本化 adapter、回放/去重、认证安全评估和明确契约；不能以“内部 API 可用”推断为稳定支持。
 
@@ -36,3 +36,6 @@ AgentOps 不从 Kuma 导入 monitor、不通过 Socket.IO 登录、不修改 Kum
 实现 `UptimeKumaPushAdapter`、V6配置/投递/attempt表、管理员API和目标详情面板。默认关闭，只允许部署唯一origin，独立DNS池+全部地址校验+IP固定；不允许模型传地址。表内只保存受限env引用，不保存token。smoke异步排队并发送固定测试UP，成功后可启用该映射；多检查只投递最新当前配置、未过期的有效样本，不代表事故聚合状态。
 
 使用官方 `louislam/uptime-kuma:2.3.0@sha256:a8e5e69ce185d5425fcbf2ab14ddf808df5651fb2747a46a17cecf8ed5fd1af2` 实际验证POST up/down返回200/ok=true，无效token返回404。在该镜像的 `server/routers/api-router.js` 中，整个Push处理的异常均进入404分支；因此404使用 `KUMA_PUSH_REJECTED` 有界重试，401/403才标记 `KUMA_TOKEN_REJECTED` 停止重试。远端正文不写日志或响应。
+
+HTTP绝对预算3秒、响应64KiB、不跟随重定向；租约15秒、最多5次尝试。重复heartbeat仍可能发生，不能宣称远端exactly-once。轮询和领取都检查新样本，避免新UP送达后又领取旧DOWN。可通过临时暂停 Kuma 验证投递失败不会阻断核心检查与事故处理。
+
