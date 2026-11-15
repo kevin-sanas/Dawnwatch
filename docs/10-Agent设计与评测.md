@@ -4,7 +4,6 @@
 
 把已有事实整理成可审查的诊断报告，不替代工程师判断。输入只能来自 Java 已授权 DTO：incident、有限时间窗口的 check run 摘要、事件、已发布运行手册段落。输出字段固定为 `summary/hypotheses/evidenceIds/nextSteps/uncertainties`。
 
-2026-10-24新增独立的首次DeepSeek接通入口 `agent-service/deepseek_check.py`：只发送原创合成证据，最多一个请求、无自动重试，使用同一DeepSeek适配器与本地输出护栏。Key由本机终端隐藏输入，不保存到报告；记录实际usage、耗时和基于2026-10-24[官方峰时价格](https://api-docs.deepseek.com/quick_start/pricing/)的未命中费用估算（美元/百万tokens：输入0.3、输出1.2），usage缺失时保持未知。该入口无业务库与checkpoint写入，不等于完整图/Java链路实测，也不计作20–30场景质量评测；3次逐次授权的真实尝试均未通过完整报告验收：第1次已返回usage但OUTPUT_REJECTED且具体原因未知，第2次不可用，第3次CONNECT_ERROR。引用白名单提示与脱敏诊断已补充；这些离线改动不能冒充真实修正成功。原始结果见verification/deepseek-live-2026-10-24.json。用法与预算授权见专属启动指南第14.1.1节。
 
 ## 图节点
 
@@ -46,9 +45,7 @@ DeepSeek的 `response_format` 使用 `json_object`，不发送原兼容模式的
 
 诊断发送的内容是本次授权的冻结检查摘要、事件DTO和脱敏后的手册段落；这仍是第三方模型调用，会产生服务商费用。凭据不得进入浏览器、日志或Git。默认mock与独立demo入口继续用于无外部调用的验收。HTTP模拟和PG回归不能代表DeepSeek实际可用性、模型质量或时延。
 
-2026-10-24新增显式 `demo.ps1 -DeepSeek -NoInput` 隔离工作台入口（专属指南14.1.2节）：隐藏输入Key、独立临时业务/checkpoint库、开发专用工厂、线程安全的每Python进程会话单请求限额。所有并发任务、重复投递及失败共用一次额度；不自动付费重试，已有报告和人审恢复复用已保存结果。禁止与 `-Check` 混用，日常生产工厂与默认mock不受影响。
 
-本轮单独授权后，1个合成场景实际完成真实DeepSeek直连→Python护栏→Java引用校验→WAITING_HUMAN→批准/检查点恢复→NOT_EXECUTED回填→合成恢复/事故关闭；最终只请求1次。实际返回模型名 `deepseek-flash`，1919输入/1029输出tokens，模型与本地护栏5702ms，峰时未命中估算US$0.0018105；服务商具体快照未独立固定，费用非实际账单，时延非整条工作流指标。模型保留根因未知、假设及未经校准自评。正式证据见[真实工作台记录](verification/deepseek-workbench-2026-10-24.json)。此前三次失败记录不改；本次不等于20–30场景质量评测、性能基准或生产验收完成。
 
 ## 诊断报告
 
@@ -70,7 +67,6 @@ DeepSeek的 `response_format` 使用 `json_object`，不发送原兼容模式的
 
 相关性人标产生引用precision和至少一条相关证据的场景召回；实际报告的人评声明提供事实/推断1–5分、不确定性及不安全建议布尔值。每份标注绑定inputHash，报告评分再绑定规范JSON的reportHash；重复/外来场景、旧hash拒绝。缺少报告或人评为INCOMPLETE，护栏拒绝为FAIL，只有30条齐备且全部拟定目标达标才PASS。未知分母不记零，实际工具执行保持未测。所有导入报告的真实模型来源仍标未认证，即使离线测试PASS也不是真实模型质量结果。
 
-上述准备阶段只实现准备与离线评分。命令、评分字段和限制见专属启动指南14.5节。正式准备/回归记录见verification/deepseek-quality-prep-2026-10-24.json；人工金标准和真实质量评测待完成。
 
 ### 受控试评测与人工审阅包（2026-10-24）
 
@@ -80,7 +76,6 @@ DeepSeek的 `response_format` 使用 `json_object`，不发送原兼容模式的
 
 离线review包自动绑定reportHash，输入变化拒绝，报告变化清空旧人评分；未变记录保留，未复核场景保持PENDING。CSV显式填写人评分和审核人，导入校验ID/hash、列名和布尔/分值，不推测语义分数。表格公式前缀转义；报告以纯文本代码块显示，被护栏拒绝的原文不导出。无新网络、依赖、业务API或执行权限。
 
-本轮137项Python回归通过，覆盖真实适配器的5次MockTransport契约、并发防重、失败/缺usage停止、预算预留、CSV往返和安全展示。实际离线夹具3条、0个人工复核得到INCOMPLETE；不是实际模型报告或人工金标准。真实请求需另获批准后由用户本机隐藏输入Key，状态见verification/deepseek-evaluation-pilot-2026-10-24.json；专属指南14.6提供命令。
 
 本批真实调用已获用户单独批准并实际执行：第1条持续503接受，第2条探针超时触发现有风险规则AGENT_RISK_UNDERESTIMATED后停止，其余3条未调用。规则表示某条nextSteps文本匹配风险操作而risk字段不是HIGH；因为拒绝原文不持久化，不能进一步确定句子或判定是语义上的低报还是保守匹配。不据此降低风险检查，也不把2条样本中的1条接受当作模型准确率。总usage4561 tokens、峰时估算US$0.0029568，非账单。接受报告重新离线核对输入hash、引用与风险后生成CSV待人评包；没有新增调用，完整30条评测和人工评分仍未完成。原始安全回执及输入快照见本阶段verification目录。
 
@@ -105,4 +100,3 @@ DeepSeek提示直接引用当前RISKY.pattern，说明大小写不敏感匹配�
 `agent-service/tests/fixtures/review_scenarios.json` 包含30个完全合成的合同回归场景，测试观察/未知、偶发/持续/恢复、手册冲突/注入/敏感文本、输入窗口/数量/hash/工具、伪引用/低报风险/敏感输出、模型总截止。`test_scenarios.py` 给出接受/拒绝断言；另外provider契约覆盖拒答、截断、额外字段、重定向、429和64KiB。未向真实模型发送数据，未有人审标注结论；前述precision/recall/人工评分仍为拟定目标，不能用这30条测试通过率替代真实模型效果。
 
 另有真实本机HTTP适配E2E：模拟兼容服务返回503后，Java保留事故/任务并退避；服务恢复后同run通过Python HTTP模型适配进入人审。它验证传输、错误隔离、checkpoint恢复与schema链路，不是外部真实模型质量测试。
-
