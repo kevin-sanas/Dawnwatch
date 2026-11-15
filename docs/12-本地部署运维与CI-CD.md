@@ -12,8 +12,6 @@ AgentOps AI 改名为 **Dawnwatch**。仓库为 <https://github.com/kevin-sanas/
 | Python | `agentops_agent` 模块及内部 schema/表名；保留导入和 checkpoint 兼容性 |
 | 数据库 | `agentops`、`agentops_checkpoint`、原角色、Flyway V1–V6；不更改已有迁移及校验和 |
 | 配置与协议 | 既有环境变量（含 `VITE_AGENTOPS_DEMO`）、`agentops.theme` 本地主题键、内部属性/测试 fixture 标识和 `kuma.agentops.test`；保持已保存配置与测试协议兼容 |
-| 本地目录 | 专属 IDEA 指南中的实际项目目录保持原位置，避免破坏工作目录和虚拟环境 |
-| 历史证据 | `docs/verification/` 内原始报告、SBOM、截图中的旧标识保留；新结果单独归档，不修改旧成绩 |
 | Compose 数据 | 原有物理卷前缀 `agentops-platform` 默认保留，详见下节 |
 
 ### Compose 升级：先核对卷，再启动
@@ -35,7 +33,6 @@ AgentOps AI 改名为 **Dawnwatch**。仓库为 <https://github.com/kevin-sanas/
 
 当前 G5 启动路径：复制 `.env.example`，设置业务库密码、checkpoint owner/application 两个密码、会话 pepper/内部密钥及 bootstrap 凭据；设置 `AGENT_ENABLED=true`，默认 mock、Kuma 关闭，执行 `docker compose up --build -d --wait`。详细中文 IDEA/Compose 步骤见根目录 `IDEA启动与验收指南.md`。业务和 checkpoint PostgreSQL 各自独立数据卷与网络；Python/数据库不映射宿主机端口，后端18080、前端5174仅绑定loopback。不要与同端口 IDEA 进程同时启动。
 
-2026-10-21 已在独立 `agentops-g5-verify` 项目实际构建三种应用镜像，启动两种 PostgreSQL、Java、Python、前端与 Kuma，验证前端同源登录、诊断/重启/人审、真实 Push 和故障恢复；测试端口18184/5184/3301，未操作用户服务。证据见 `verification/g5-validation-2026-10-21.json`。bootstrap 仍仅针对空用户表，不重置已有账号。
 
 ## 配置
 
