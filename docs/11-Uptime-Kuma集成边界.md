@@ -37,5 +37,5 @@ Dawnwatch 不从 Kuma 导入 monitor、不通过 Socket.IO 登录、不修改 Ku
 
 使用官方 `louislam/uptime-kuma:2.3.0@sha256:a8e5e69ce185d5425fcbf2ab14ddf808df5651fb2747a46a17cecf8ed5fd1af2` 实际验证POST up/down返回200/ok=true，无效token返回404。在该镜像的 `server/routers/api-router.js` 中，整个Push处理的异常均进入404分支；因此404使用 `KUMA_PUSH_REJECTED` 有界重试，401/403才标记 `KUMA_TOKEN_REJECTED` 停止重试。远端正文不写日志或响应。
 
-HTTP绝对预算3秒、响应64KiB、不跟随重定向；租约15秒、最多5次尝试。重复heartbeat仍可能发生，不能宣称远端exactly-once。轮询和领取都检查新样本，避免新UP送达后又领取旧DOWN。真实Kuma暂停注入已验证超时/PENDING、核心新诊断继续、恢复后同投递第4次送达；前一次404分类错误由失败回归测试修复。证据见 `verification/g5-validation-2026-10-21.json`。
+HTTP绝对预算3秒、响应64KiB、不跟随重定向；租约15秒、最多5次尝试。重复heartbeat仍可能发生，不能宣称远端exactly-once。轮询和领取都检查新样本，避免新UP送达后又领取旧DOWN。可通过临时暂停 Kuma 验证投递失败不会阻断核心检查与事故处理。
 
