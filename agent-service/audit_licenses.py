@@ -9,7 +9,7 @@ root = Path(__file__).resolve().parents[1]
 environment = Path(sys.prefix).resolve()
 if environment != root / "agent-service" / ".venv":
     raise SystemExit("Run with agent-service/.venv Python")
-out = root / "docs/verification/g3-dependencies"
+out = root / ".cache/dependency-audit/python"
 out.mkdir(parents=True, exist_ok=True)
 pins = re.findall(r"^([A-Za-z0-9_.-]+)(?:\[[^]]+\])?==([^ \\\n]+)", (root / "agent-service/requirements.lock").read_text(), re.M)
 inventory, notices = [], []
